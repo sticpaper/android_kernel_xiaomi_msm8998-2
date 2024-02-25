@@ -20,6 +20,7 @@
 #include <linux/random.h>
 #include <linux/uio.h>
 #include <linux/uuid.h>
+#include <linux/uidgid.h>
 #include <linux/file.h>
 
 #include "f2fs.h"
@@ -275,6 +276,7 @@ go_write:
 	up_read(&F2FS_I(inode)->i_sem);
 
 	if (cp_reason) {
+		stat_inc_cp_reason(sbi, cp_reason);
 		/* all the dirty node pages should be flushed for POR */
 		ret = f2fs_sync_fs(inode->i_sb, 1);
 
@@ -333,6 +335,12 @@ flush_out:
 	}
 	f2fs_update_time(sbi, REQ_TIME);
 out:
+	/* Print real-time f2fs_do_sync_file function logs */
+	pr_info("[F2FS-fs] sync: cp_reason: %s, comm: %s (%u %u)\n",
+		f2fs_cp_reasons[cp_reason], current->comm,
+		from_kuid_munged(&init_user_ns, current_fsuid()),
+		from_kgid_munged(&init_user_ns, current_fsgid()));
+	stat_inc_sync_file_count(sbi);
 	trace_f2fs_sync_file_exit(inode, cp_reason, datasync, ret);
 	return ret;
 }
