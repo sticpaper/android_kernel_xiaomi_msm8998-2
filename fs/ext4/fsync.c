@@ -145,11 +145,13 @@ int ext4_sync_file(struct file *file, loff_t start, loff_t end, int datasync)
 
 	if (test_opt(inode->i_sb, ASYNC_FSYNC)) {
 		if (!uid_eq(GLOBAL_ROOT_UID, current_fsuid()) &&
-			  !(in_group_p(make_kgid(current_user_ns(), AID_SYSTEM)))) {
-
+		    !(in_group_p(make_kgid(current_user_ns(), AID_SYSTEM)))) {
 			if (jbd2_transaction_need_wait(journal, commit_tid))
 				jbd2_log_start_commit(journal, commit_tid);
 
+			/* Print the real-time ext4 async_fsync function logs */
+			pr_info("[EXT4-fs] comm: %s (%u): don't wait transaction finish\n",
+				  current->comm, current_fsuid());
 			goto out;
 		}
 	}
